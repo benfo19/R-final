@@ -1,2 +1,2 @@
 # R-final
-First R class @ Wake Forest - final project
+This was one of the first courses I took at Wake Forest, an introduction to R. I came in with no prior coding experience, and this was my final exam after the two month course. I was given three hours to complete tasks relating to Data Import, Visualization, Transformation, Wrangling, Functions, Vectors, Iterations, and had to successfully run it in an R Markdown and knit it into an HTML file.
