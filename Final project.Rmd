@@ -1,0 +1,164 @@
+---
+title: "Final Project"
+author: "Benjamin Foglia"
+date: "8/20/2019"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Discussion
+
+For this report, I examined the dataset sales_data. 
+
+
+## Initial Setup
+
+```{r, warning=FALSE}
+## run important packages and read in data
+library(tidyverse)
+library(tidyr)
+library(ggplot2)
+library(readr)
+library(stringr)
+library(dplyr)
+
+Sales_data <- read_csv("E:/BAN 6003/sales_data.csv")
+```
+
+## Metadata
+
+**flag**
+**gender**
+**education**
+**house_val**
+**age_bracket** - *which age bin the person falls in (1=unknown, 2=lowest, 7=highest)*
+**age_range** - *person's age range (i.e. >65)*
+**online**
+**customer_psy**
+**marriage**
+**children**
+**occupation**
+**mortgage**
+**house_own**
+**region**
+**car_prob**
+**fam_income**
+
+## Wrangling
+
+The first thing I wanted to do with the initial dataset was change values like education and mortgage to numerical values. I also split age into 2 columns, one containting the number before the '_', and one after. I thought this made it easier to read, and that using the first number would making grouping people together by age easier.
+```{r, warning=FALSE}
+## Education
+Sales_data$education <- str_remove_all(Sales_data$education, " <HS")
+Sales_data$education <- str_remove_all(Sales_data$education, " HS")
+Sales_data$education <- str_remove_all(Sales_data$education, " Some College")
+Sales_data$education <- str_remove_all(Sales_data$education, " Bach")
+Sales_data$education <- str_remove_all(Sales_data$education, " Grad")
+
+Sales_data$education <- extract_numeric(Sales_data$education)
+
+## Mortgage
+Sales_data$mortgage <- str_remove_all(Sales_data$mortgage, "low")
+Sales_data$mortgage <- str_remove_all(Sales_data$mortgage, "med")
+Sales_data$mortgage <- str_remove_all(Sales_data$mortgage, "high")
+
+Sales_data$mortgage <- extract_numeric(Sales_data$mortgage)
+
+## Age
+Sales_data <- separate(Sales_data, age, c("age_bracket", "age_range"), sep = "_")
+
+```
+
+## Transformation
+
+From the original sales_data, I created multiple new data sets by filtering for specific values.
+```{r}
+## Data from all who bought the product
+buyers_data <- Sales_data %>% filter(flag == "Y")
+
+## Data for all homeowners whose houses had value
+house_owners <- Sales_data %>% filter(house_val > 0, house_owner == "Owner")
+
+## House value by region
+val_by_region <- Sales_data %>% select(house_val, region)
+
+```
+
+## Functions, Vectors, Iterations
+
+Per Doc B's request, I have included the function and for loop that categorizes and counts house values by "below average", "average to expensive", and "very expensive".
+```{r}
+mean_val <- mean(Sales_data$house_val)
+very_high <- 2*sd(Sales_data$house_val) + mean_val
+
+house_expenses <- function(x){
+  if (x > very_high) {
+    print("Very Expensive")
+  } else if (x > mean_val){
+    print("Average to Expensive")
+  } else {
+    print("Below Average")}
+}
+# Test
+house_expenses(1200000)
+
+## For loop
+
+input <- c(1000, 310000, 1200000)
+output <- vector("character", length(input))
+
+for (i in seq_along(input)){
+  output[[i]] <- house_expenses(input[[i]])
+}
+
+input_house_val <- Sales_data$house_val
+
+```
+```{r,results='hide'}
+for (i in seq_along(input_house_val)){
+  output[[i]] <- house_expenses(input_house_val[[i]])
+}
+v=0
+a=0
+b=0
+
+for (i in seq_along(output)){
+  if(output[[i]] == "Very Expensive") {v=v+1}
+  else if(output[[i]] == "Average to Expensive"){a=a+1}
+  else{b=b+1}
+}
+
+```
+```{r}
+house_results <- c("Very Expensive" = v, "Average to Expensive" = a, "Below Average" = b)
+house_results
+## most houses are below average value
+```
+
+## Visualizations
+
+I focused on a couple of different things for my visualizations. First and foremost, I wanted to see what types of people were buying the product. Secondly, I did some of what Doc B asked for and looked for variations in in house values with respect to other variables.
+```{r}
+## Using buyers_data, I looked at which genders and professions were buying the product. To simplify, I only used data where the gender of the person was known.
+ggplot(buyers_data %>% filter(gender != "U"))+
+  geom_bar(aes(x=gender, fill = occupation), position = "dodge")
+
+## For Doc B, I created a boxplot to compare education and house value using the house_owner dataset
+ggplot(house_owners, aes(x=education, y=house_val))+
+  geom_boxplot(aes(group = education))
+## based on the boxplot, while the most expensive houses are in education groups 2 & 3, there does seem to be evidence suggesting that someone with a higher education level will own a more expensive house.
+
+## Another Boxplot, this time comparing house value by region
+ggplot(val_by_region, aes(x=region, y = house_val, group = region))+
+  geom_point()+
+  geom_boxplot()
+
+```
+
+## Final Notes
+
+I didn't want to make a second boxplot; I would have much preferred to make a third type of visualization. I tried to spread my val_by_region and have each region be its own variable, but kept getiing errors saying "Each row of output must be identified by a unique combination of keys. Keys are shared for 40000 rows". 
+I then would have wanted to use the geom_map function to illustrate average price by region in the United States.
